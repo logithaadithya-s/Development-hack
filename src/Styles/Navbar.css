@@ -1,0 +1,60 @@
+.vitgpt-header {
+    background-color: transparent;
+    height: 5rem;
+    position: sticky; /* Move sticky to header */
+    top: 0; /* This is crucial for sticky to work */
+    z-index: 1000; /* Ensures it stays above other content */
+    width: 100%;
+}
+
+.vitgpt-navbar {
+    height: 4.5rem;
+    display: flex;
+    flex-direction: row;
+    margin: 0.5rem 0.5rem 10px 0.5rem;
+    color: white;
+    border-bottom: 1px solid #333333;
+    background-color: rgba(0, 0, 0, 0.4); /* Added background for better visibility */
+    backdrop-filter: blur(100px); /* Optional: glass effect */
+    -webkit-backdrop-filter: blur(10px); /* Safari support */
+}
+.vitgpt-logo{
+    height: 3rem;
+    margin-left: 1.4rem;
+    margin-top: 0.5rem;
+
+}
+.subject-input{
+    justify-content: center;
+    margin-right: 4rem;
+    padding: 6px;
+    border-radius: 2rem;
+    margin-top: -3.5px;
+}
+.subject-input:hover{
+    border: none;
+}
+.upload-button {
+    background: transparent;
+    border: 1.5px solid white;
+    color: white;
+    padding: 8px 20px;
+    margin-top: -5px;
+    border-radius: 25px;
+    text-decoration: none;
+    font-size: 14px;
+    transition: all 0.3s ease-in-out;
+}
+
+.upload-button:hover {
+    background: white;
+    color: black;
+}
+.navbar-container{
+    position: absolute;
+    right:3rem;
+    top: 1rem;
+}
+.options{
+    width: 2px;
+}
