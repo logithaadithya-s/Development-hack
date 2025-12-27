@@ -159,9 +159,14 @@ const AIGenerator = () => {
       
       <style jsx>{`
         .ai-generator {
-          background-color: #f8f9fa;
+          background-color: #fffff;
+          margin-left:30px;
         }
-        
+        .container{
+          padding:0px;
+          margin:0px;
+          width:100vw;
+        }
         .generator-container {
           display: grid;
           grid-template-columns: 1fr 1.5fr;
