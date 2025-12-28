@@ -20,6 +20,13 @@
     animation: slideUp 0.8s ease;
 }
 
+.loading-spinner {
+    text-align: center;
+    padding: 40px;
+    color: #666;
+    font-size: 1.1rem;
+}
+
 .avatar-wrapper {
     margin-bottom: 20px;
 }

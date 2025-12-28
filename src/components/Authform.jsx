@@ -1,7 +1,7 @@
 import "../Styles/Authform.css";
 import { useState } from "react";
 import { FcGoogle } from "react-icons/fc";
-import { useNavigate } from "react-router-dom"; // Add this import
+import { useNavigate } from "react-router-dom";
 
 import { auth, googleProvider } from "../firebaseConfig";
 import {
@@ -10,43 +10,45 @@ import {
   signInWithPopup,
 } from "firebase/auth";
 
+import { verifyGoogleAuth } from "../utils/api";
+import { useAuth } from "../context/AuthContext";
+import { useToast } from "../hooks/useToast";
+import ToastContainer from "./ToastContainer";
+
 function Authform() {
-  const navigate = useNavigate(); // Add this hook
+  const navigate = useNavigate();
+  const { login } = useAuth();
+  const { toasts, toast, removeToast } = useToast();
+
   const [isRegister, setIsRegister] = useState(false);
   const [showLoginPassword, setShowLoginPassword] = useState(false);
-  const [showLoginEmail, setShowLoginEmail] = useState(false);
   const [showRegisterPassword, setShowRegisterPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
   const [loginEmail, setLoginEmail] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
-
   const [regEmail, setRegEmail] = useState("");
   const [regPassword, setRegPassword] = useState("");
 
   const toggleForm = () => setIsRegister((prev) => !prev);
 
-  async function sendIdTokenToBackend(user) {
-    const idToken = await user.getIdToken(true); // force fresh token
+  // ---------- SHARED BACKEND AUTH ----------
+  const authenticateWithBackend = async (user) => {
+    const idToken = await user.getIdToken(true);
+    const backendResponse = await verifyGoogleAuth(idToken);
 
-    const res = await fetch(
-      "https://iit-jhack-backend.onrender.com/auth/google",
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ idToken }),
-      }
-    );
+    // Save to Context (and localStorage internally)
+    login(backendResponse);
 
-    if (!res.ok) {
-      const err = await res.text();
-      throw new Error(err);
+    // Route based on profile completion
+    if (!backendResponse.profileCompleted) {
+      navigate("/profile-completion");
+    } else {
+      navigate("/profile");
     }
+  };
 
-    return res.json(); // This now returns {status, uid, profileCompleted}
-  }
-
-  // ---------------- EMAIL / PASSWORD AUTH ----------------
+  // ---------- EMAIL / PASSWORD ----------
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (isLoading) return;
@@ -56,8 +58,7 @@ function Authform() {
     try {
       if (isRegister) {
         if (!regEmail || !regPassword) {
-          alert("Please enter email and password");
-          setIsLoading(false);
+          toast.error("Email and password required");
           return;
         }
 
@@ -66,20 +67,11 @@ function Authform() {
           regEmail,
           regPassword
         );
-        console.log("Registered:", res.user);
-        const backendResponse = await sendIdTokenToBackend(res.user);
-        console.log("Backend response:", backendResponse);
 
-        // Check profile completion and redirect
-        if (backendResponse.profileCompleted === false) {
-          navigate("/profile");
-        } else {
-          navigate("/home");
-        }
+        await authenticateWithBackend(res.user);
       } else {
         if (!loginEmail || !loginPassword) {
-          alert("Please enter email and password");
-          setIsLoading(false);
+          toast.error("Email and password required");
           return;
         }
 
@@ -88,157 +80,97 @@ function Authform() {
           loginEmail,
           loginPassword
         );
-        console.log("Logged in:", res.user);
-        const backendResponse = await sendIdTokenToBackend(res.user);
-        console.log("Backend response:", backendResponse);
 
-        // Check profile completion and redirect
-        if (backendResponse.profileCompleted === false) {
-          navigate("/profile");
-        } else {
-          navigate("/home");
-        }
+        await authenticateWithBackend(res.user);
       }
     } catch (error) {
-      console.error(error.code, error.message);
+      console.error(error);
 
       switch (error.code) {
         case "auth/invalid-email":
-          alert("Invalid email address");
+          toast.error("Invalid email address");
           break;
         case "auth/user-not-found":
-          alert("User not found");
+          toast.error("User not found");
           break;
         case "auth/wrong-password":
-          alert("Incorrect password");
+          toast.error("Incorrect password");
           break;
         case "auth/email-already-in-use":
-          alert("Email already registered");
+          toast.error("Email already registered");
           break;
         case "auth/weak-password":
-          alert("Password should be at least 6 characters");
+          toast.error("Password must be at least 6 characters");
           break;
         default:
-          alert(error.message);
+          toast.error(error.message || "Authentication failed");
       }
     } finally {
       setIsLoading(false);
     }
   };
 
-  // ---------------- GOOGLE AUTH ---------------
+  // ---------- GOOGLE AUTH ----------
   const handleGoogleAuth = async () => {
     if (isLoading) return;
     setIsLoading(true);
 
     try {
-      // 1️⃣ Google sign-in
       const result = await signInWithPopup(auth, googleProvider);
-
-      const user = result.user;
-      if (!user) {
-        throw new Error("No user returned from Google sign-in");
+      if (!result.user) {
+        throw new Error("Google sign-in failed");
       }
 
-      // 2️⃣ Get Firebase ID token
-      const idToken = await user.getIdToken();
-
-      console.log("Firebase ID Token:", idToken);
-
-      // 3️⃣ Send token to backend
-      const response = await fetch(
-        "https://iit-jhack-backend.onrender.com/auth/google",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ idToken }),
-        }
-      );
-
-      if (!response.ok) {
-        const text = await response.text();
-        throw new Error(`Backend error: ${text}`);
-      }
-
-      const data = await response.json();
-      console.log("Backend response:", data);
-
-      // Check profile completion and redirect
-      if (data.profileCompleted === false) {
-        navigate("/profile");
-      } else {
-        navigate("/home");
-      }
+      await authenticateWithBackend(result.user);
     } catch (error) {
-      console.error("Google auth flow failed:", error);
-      alert(error.message);
+      console.error("Google auth error:", error);
+      toast.error(error.message || "Google authentication failed");
+    } finally {
       setIsLoading(false);
     }
   };
 
   return (
     <div className="login-page-container">
-      <div
-        className={`wrapper ${isRegister ? "active" : ""} black-white-theme`}
-      >
-        {/* Login Form */}
+      <ToastContainer toasts={toasts} removeToast={removeToast} />
+
+      <div className={`wrapper ${isRegister ? "active" : ""}`}>
+        {/* LOGIN */}
         <div className="form-box login">
-          <h2 className="animation">Login</h2>
-          <form className="animation" onSubmit={handleSubmit}>
+          <h2>Login</h2>
+
+          <form onSubmit={handleSubmit}>
             <div className="input-box">
               <input
-                id="loginEmail"
-                type="text"
-                placeholder=" "
+                type="email"
                 required
                 value={loginEmail}
                 onChange={(e) => setLoginEmail(e.target.value)}
               />
-              <label htmlFor="loginEmail">Email</label>
-              <i className="bx bxs-user"></i>
+              <label>Email</label>
             </div>
+
             <div className="input-box">
               <input
-                id="loginPassword"
                 type={showLoginPassword ? "text" : "password"}
-                placeholder=" "
                 required
                 value={loginPassword}
                 onChange={(e) => setLoginPassword(e.target.value)}
               />
-              <label htmlFor="loginPassword">Password</label>
-              <i className="bx bxs-lock-alt"></i>
+              <label>Password</label>
               <button
                 type="button"
                 className="toggle-password"
                 onClick={() => setShowLoginPassword(!showLoginPassword)}
               >
-                <i
-                  className={`bx ${showLoginPassword ? "bx-hide" : "bx-show"}`}
-                ></i>
+                {showLoginPassword ? "Hide" : "Show"}
               </button>
             </div>
 
-            <div className="forgot-password">
-              <a href="#" onClick={(e) => e.preventDefault()}>
-                Forgot Password?
-              </a>
-            </div>
-
-            <button type="submit" className="btn" disabled={isLoading}>
-              {isLoading ? (
-                <>
-                  <span className="loading-spinner"></span>
-                  Logging in...
-                </>
-              ) : (
-                "Login"
-              )}
+            <button className="btn" type="submit" disabled={isLoading}>
+              {isLoading ? "Logging in..." : "Login"}
             </button>
 
-            {/* Google Login Button */}
             <div className="google-auth">
               <div className="divider">
                 <span>Or continue with</span>
@@ -249,89 +181,55 @@ function Authform() {
                 onClick={handleGoogleAuth}
                 disabled={isLoading}
               >
-                <FcGoogle className="google-icon" />
-                Sign in with Google
+                <FcGoogle /> Sign in with Google
               </button>
             </div>
 
-            <div className="logreg-link">
-              <p>
-                Don&apos;t have an account?{" "}
-                <a
-                  href="#"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    toggleForm();
-                  }}
-                >
-                  Register
-                </a>
-              </p>
-            </div>
+            <p className="logreg-link">
+              Don&apos;t have an account?{" "}
+              <a href="#" onClick={(e) => { e.preventDefault(); toggleForm(); }}>
+                Register
+              </a>
+            </p>
           </form>
         </div>
 
-        {/* Register Form */}
+        {/* REGISTER */}
         <div className="form-box register">
-          <h2 className="animation">Register</h2>
-          <form className="animation" onSubmit={handleSubmit}>
-            <div className="input-box">
-              <input id="regUsername" type="text" placeholder=" " required />
-              <label htmlFor="regUsername">Username</label>
-              <i className="bx bxs-user"></i>
-              <span className="error-message"></span>
-            </div>
+          <h2>Register</h2>
 
+          <form onSubmit={handleSubmit}>
             <div className="input-box">
               <input
-                id="regEmail"
-                type="text"
-                placeholder=" "
+                type="email"
                 required
                 value={regEmail}
                 onChange={(e) => setRegEmail(e.target.value)}
               />
-              <label htmlFor="regEmail">Email</label>
-              <i className="bx bxs-user"></i>
-              <span className="error-message"></span>
+              <label>Email</label>
             </div>
+
             <div className="input-box">
               <input
-                id="regPassword"
                 type={showRegisterPassword ? "text" : "password"}
-                placeholder=" "
                 required
                 value={regPassword}
                 onChange={(e) => setRegPassword(e.target.value)}
               />
-              <label htmlFor="regPassword">Password</label>
-              <i className="bx bxs-lock-alt"></i>
+              <label>Password</label>
               <button
                 type="button"
                 className="toggle-password"
                 onClick={() => setShowRegisterPassword(!showRegisterPassword)}
               >
-                <i
-                  className={`bx ${
-                    showRegisterPassword ? "bx-hide" : "bx-show"
-                  }`}
-                ></i>
+                {showRegisterPassword ? "Hide" : "Show"}
               </button>
-              <span className="error-message"></span>
             </div>
 
-            <button type="submit" className="btn" disabled={isLoading}>
-              {isLoading ? (
-                <>
-                  <span className="loading-spinner"></span>
-                  Registering...
-                </>
-              ) : (
-                "Register"
-              )}
+            <button className="btn" type="submit" disabled={isLoading}>
+              {isLoading ? "Registering..." : "Register"}
             </button>
 
-            {/* Google Sign Up Button */}
             <div className="google-auth">
               <div className="divider">
                 <span>Or sign up with</span>
@@ -342,45 +240,18 @@ function Authform() {
                 onClick={handleGoogleAuth}
                 disabled={isLoading}
               >
-                <FcGoogle className="google-icon" />
-                Sign up with Google
+                <FcGoogle /> Sign up with Google
               </button>
             </div>
 
-            <div className="logreg-link">
-              <p>
-                Already have an account?{" "}
-                <a
-                  href="#"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    toggleForm();
-                  }}
-                >
-                  Login
-                </a>
-              </p>
-            </div>
+            <p className="logreg-link">
+              Already have an account?{" "}
+              <a href="#" onClick={(e) => { e.preventDefault(); toggleForm(); }}>
+                Login
+              </a>
+            </p>
           </form>
         </div>
-
-        {/* Info Texts */}
-        <div className="info-text login">
-          <h2 className="animation">Welcome Back!</h2>
-          <p className="animation">
-            To keep connected with us please login with your personal info.
-          </p>
-        </div>
-        <div className="info-text register">
-          <h2 className="animation">Hello, Friend!</h2>
-          <p className="animation">
-            Enter your personal details and start your journey with us.
-          </p>
-        </div>
-
-        {/* Background Animations */}
-        <div className="bg-animate"></div>
-        <div className="bg-animate2"></div>
       </div>
     </div>
   );
