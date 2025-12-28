@@ -1,8 +1,14 @@
+<<<<<<< HEAD
 import React, { useState, useEffect, useRef } from 'react';
 import { FaGraduationCap, FaBars, FaTimes, FaUserCircle } from 'react-icons/fa';
 import {Link, useNavigate} from "react-router-dom";
 import { useAuth } from '../context/AuthContext';
 
+=======
+import React, { useState } from "react";
+import { FaLinkedin, FaGraduationCap, FaBars, FaTimes } from "react-icons/fa";
+import { Link } from "react-router-dom";
+>>>>>>> origin/main
 const Header = () => {
   const { user, logout, isAuthenticated } = useAuth();
   const navigate = useNavigate();
@@ -38,13 +44,16 @@ const Header = () => {
   }, [showProfileMenu]);
 
   return (
-    <header className="header"> 
+    <header className="header">
       <div className="container">
         <nav className="navbar">
           <div className="logo">
             <FaGraduationCap className="logo-icon" />
-            <span className="logo-text">College<span className="logo-highlight">Central</span>Hub</span>
+            <span className="logo-text">
+              College<span className="logo-highlight">Central</span>Hub
+            </span>
           </div>
+<<<<<<< HEAD
           
           <div className={`nav-links ${isMenuOpen ? 'active' : ''}`}>
             <Link to="/" ><a href="#features">Features</a></Link>
@@ -89,11 +98,37 @@ const Header = () => {
             aria-label="Toggle menu"
             type="button"
           >
+=======
+
+          <ul className={`nav-links ${isMenuOpen ? "active" : ""}`}>
+            <li>
+              <a href="#features">Features</a>
+            </li>
+            <li>
+              <a href="#ai-generator">AI Generator</a>
+            </li>
+            <li>
+              <a href="#how-it-works">How It Works</a>
+            </li>
+            <li>
+              <Link to={`/colleges`} className="apply-btn-card">
+                <a href="#testimonials">Testimonials</a>
+              </Link>
+            </li>
+            <li>
+              <a href="#contact" className="btn btn-secondary">
+                Get Early Access
+              </a>
+            </li>
+          </ul>
+
+          <div className="mobile-menu-btn" onClick={toggleMenu}>
+>>>>>>> origin/main
             {isMenuOpen ? <FaTimes /> : <FaBars />}
           </button>
         </nav>
       </div>
-      
+
       <style jsx>{`
         .header {
           background-color: white;
@@ -103,7 +138,7 @@ const Header = () => {
           top: 0;
           z-index: 1000;
         }
-        
+
         .navbar {
           display: flex;
           justify-content: space-between;
@@ -111,7 +146,7 @@ const Header = () => {
           padding: 20px 0;
           width: 100%;
         }
-        
+
         .logo {
           display: flex;
           align-items: center;
@@ -119,39 +154,45 @@ const Header = () => {
           font-weight: 700;
           color: var(--dark-color);
         }
-        
+
         .logo-icon {
           color: var(--primary-color);
           margin-right: 10px;
           font-size: 2rem;
         }
-        
+
         .logo-highlight {
           color: var(--primary-color);
         }
-        
+
         .nav-links {
           display: flex;
           align-items: center;
-          gap: 30px;
+          width: 50%;
+          list-style: none;
+          gap: 10px;
         }
-        
+
         .nav-links a {
           text-decoration: none;
           color: var(--dark-color);
           font-weight: 500;
           transition: color 0.3s ease;
         }
-        
+
         .nav-links a:hover {
           color: var(--primary-color);
         }
+<<<<<<< HEAD
         
         .nav-links .btn {
           padding: 8px 20px;
           font-size: 0.9rem;
         }
         
+=======
+
+>>>>>>> origin/main
         .mobile-menu-btn {
           display: none;
           font-size: 1.5rem;
@@ -255,31 +296,30 @@ const Header = () => {
         .profile-menu-item:hover {
           background-color: #f5f5f5;
         }
-        
+
         @media (max-width: 1024px) {
           .nav-links {
             gap: 20px;
           }
-          
+
           .nav-links a {
             font-size: 0.95rem;
           }
-
         }
 
         @media (max-width: 1024px) {
           .mobile-menu-btn {
             display: block;
           }
-          
+
           .logo {
             font-size: 1.3rem;
           }
-          
+
           .logo-icon {
             font-size: 1.7rem;
           }
-          
+
           .nav-links {
             position: fixed;
             top: 80px;
@@ -295,12 +335,12 @@ const Header = () => {
             transition: transform 0.3s ease, opacity 0.3s ease;
             z-index: 999;
           }
-          
+
           .nav-links.active {
             transform: translateY(0);
             opacity: 1;
           }
-          
+
           .nav-links a {
             margin: 10px 0;
             width: 100%;
@@ -313,11 +353,11 @@ const Header = () => {
           .logo {
             font-size: 1.1rem;
           }
-          
+
           .logo-icon {
             font-size: 1.5rem;
           }
-          
+
           .navbar {
             padding: 15px 0;
           }
